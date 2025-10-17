@@ -6,6 +6,8 @@
 [![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-FFD21E?logo=huggingface)](https://huggingface.co/)
 [![Ollama](https://img.shields.io/badge/Ollama-AI-000000?logo=ollama)](https://ollama.ai/)
 [![FAISS](https://img.shields.io/badge/FAISS-Vector_Search-0055A4?logo=facebook)](https://github.com/facebookresearch/faiss)
+[![Cursor](https://img.shields.io/badge/Cursor-Editor-000000?logo=cursor)](https://cursor.sh/)
+[![Gemini](https://img.shields.io/badge/Gemini-CLI-34A853?logo=google)](https://gemini.google.com/)
 
 A universal local RAG (Retrieval-Augmented Generation) knowledge base building system that allows you to create and manage knowledge bases for any domain.
 
