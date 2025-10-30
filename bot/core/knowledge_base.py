@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 import faiss
-from .config import (
+from ..config import (
     TEXT_FAISS_FILE, IMAGE_FAISS_FILE, METADATA_FILE,
     IMAGE_EMBEDDING_DIM, DOCS_DIR, IMG_DIR
 )

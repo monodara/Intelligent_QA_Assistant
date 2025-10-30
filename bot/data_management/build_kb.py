@@ -4,8 +4,8 @@ Used to run separately to build or incrementally update knowledge base
 """
 import os
 import sys
-from .knowledge_base import KnowledgeBaseManager
-from .config import DOCS_DIR, IMG_DIR
+from ..core.knowledge_base import KnowledgeBaseManager
+from ..config import DOCS_DIR, IMG_DIR
 
 
 def build_or_update_knowledge_base(docs_dir=DOCS_DIR, img_dir=IMG_DIR, incremental=True):

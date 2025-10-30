@@ -17,6 +17,12 @@ transformers>=4.35.0
 paddleocr>=2.6.1
 paddlepaddle>=2.5.0
 
+# Database
+psycopg2-binary>=2.9.7
+
+# Qwen Agent
+qwen-agent>=0.0.11
+
 # Local LLM integration
 ollama>=0.6.0
 

@@ -1,4 +1,4 @@
-from .config import DEFAULT_RETRIEVAL_K
+from ..config import DEFAULT_RETRIEVAL_K
 from .embedding_handler import EmbeddingHandler
 from .ollama_handler import generate_local_answer
 

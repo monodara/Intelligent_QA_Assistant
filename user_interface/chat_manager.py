@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from knowledge_manager import ensure_knowledge_base_loaded
+from bot.api_service import handle_chat_query # Import the backend service function
 
 def initialize_session_state():
     """Initialize session state"""
@@ -55,122 +56,80 @@ def process_pending_queries():
                 _generate_and_process_answer(last_user_query)
 
 def _generate_and_process_answer(last_user_query):
-    """Generate and process answer"""
-    import sys
-    import os
-    # Add project root directory to Python path
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    
-    from bot.rag_engine import RAGEngine
-    from bot.knowledge_base import KnowledgeBaseManager
-    from bot.config import DOCS_DIR, IMG_DIR
-    from bot.ollama_handler import generate_local_answer
+    """Generate and process answer by calling the backend service"""
     
     with st.spinner("RAG Assistant is thinking..."):
         try:
-            print(f"✅ Frontend request has reached backend: {last_user_query}")
+            print(f"✅ Frontend sending query to backend: {last_user_query}")
             
-            # Get knowledge base components
-            metadata_store = st.session_state.metadata_store
-            text_index = st.session_state.text_index
-            image_index = st.session_state.image_index
+            # Call the backend service to handle the query
+            backend_response = handle_chat_query(last_user_query)
             
-            if metadata_store is None or text_index is None or image_index is None:
-                raise Exception("Knowledge base not properly loaded, please load knowledge base first")
-            
-            # Use embedding handler from cached KB manager to avoid reloading models
-            if st.session_state.kb_manager is not None:
-                embedding_handler = st.session_state.kb_manager.embedding_handler
-            else:
-                # If cached KB manager is not available, try to create RAG engine directly
-                rag_engine = st.session_state.rag_engine
-                if rag_engine is None:
-                    rag_engine = RAGEngine()
-                    st.session_state.rag_engine = rag_engine
-                embedding_handler = rag_engine.embedding_handler
-            
-            # Text retrieval
-            print(f"🔍 Starting text retrieval: {last_user_query[:50]}...")
-            query_vec = embedding_handler.get_text_embedding_offline(last_user_query).reshape(1,-1)
-            print(f"📊 Query vector shape: {query_vec.shape}")
-            
-            distances, ids = text_index.search(query_vec, 3)
-            print(f"📈 Retrieval results - Distances: {distances}, IDs: {ids}")
-            
-            retrieved_context = []
-            for doc_id in ids[0]:
-                if doc_id != -1:
-                    match = next((item for item in metadata_store if item["id"]==doc_id), None)
-                    if match:
-                        retrieved_context.append(match)
-                        print(f"📄 Found relevant document ID: {doc_id}, Source: {match.get('source', 'Unknown')}")
-            
-            # Image retrieval
-            if any(keyword in last_user_query.lower() for keyword in ["poster","image","picture","photo","look like","what does it look like"]):
-                print(f"🔍 Starting image retrieval...")
-                query_vec_img = embedding_handler.get_clip_text_embedding_cpu(last_user_query).reshape(1,-1)
-                print(f"📊 Image query vector shape: {query_vec_img.shape}")
-                distances, image_ids = image_index.search(query_vec_img, 1)
-                print(f"📈 Image retrieval results - Distances: {distances}, IDs: {image_ids}")
+            if backend_response.get("success"):
+                final_answer = ""
+                image_path_found = None
                 
-                for doc_id in image_ids[0]:
-                    if doc_id != -1:
-                        match = next((item for item in metadata_store if item["id"]==doc_id), None)
-                        if match:
-                            context_text = f"Related image path: {match['path']}, Image text: '{match['ocr']}'"
-                            retrieved_context.append({"type":"image_context","content":context_text,"metadata":match})
-                            print(f"🖼️ Found related image ID: {doc_id}, Path: {match['path']}")
-            
-            # Build Prompt
-            context_str = ""
-            for i, item in enumerate(retrieved_context):
-                content = item.get('content','')
-                source = item.get('metadata',{}).get('source', item.get('source','Unknown Source'))
-                context_str += f"Background Knowledge {i+1} (Source: {source}):\n{content}\n\n"
-            
-            print(f"📝 Building Prompt context: {len(context_str)} characters")
-            
-            from bot.config import SYSTEM_ROLE
-            
-            prompt = f"""{SYSTEM_ROLE}. Please answer the user's question using a friendly and professional tone based on the following background knowledge. Please only use information from the background knowledge, do not make up information.
+                # Extract answer based on tool used
+                tool_used = backend_response.get("tool")
+                if tool_used == "LLM_direct_answer":
+                    final_answer = backend_response.get("answer", "No answer provided.")
+                elif tool_used == "get_weather":
+                    weather_data = backend_response.get("weather_data", {})
+                    if weather_data.get("success"):
+                        if weather_data.get("source") == "forecast":
+                            final_answer = (
+                                f"Weather in {weather_data['location']}, {weather_data['date']}: "
+                                f"{weather_data['weather']}. Day Temp: {weather_data['temp_day']}°C, "
+                                f"Night Temp: {weather_data['temp_night']}°C, Humidity: {weather_data['humidity']}%, "
+                                f"Wind Speed: {weather_data['wind_speed']} m/s."
+                            )
+                        else: # historical_average
+                            final_answer = (
+                                f"Historical average weather in {weather_data['location']}, {weather_data['date']}: "
+                                f"Typical: {weather_data['typical_weather']}. Avg Temp: {weather_data['avg_temp']}, "
+                                f"Avg Humidity: {weather_data['avg_humidity']}. Note: {weather_data['note']}"
+                            )
+                    else:
+                        final_answer = f"Could not retrieve weather: {weather_data.get('error', 'Unknown error')}"
+                elif tool_used == "execute_sql_query":
+                    final_answer = backend_response.get("answer", "SQL query executed, but no answer provided.")
+                    if backend_response.get("data"):
+                        final_answer += "\n\nData:\n" + "\n".join([str(row) for row in backend_response["data"][:5]]) # Show first 5 rows
+                elif tool_used == "search_knowledge_base":
+                    knowledge_results = backend_response.get("knowledge_base_results", [])
+                    if knowledge_results:
+                        final_answer = "Here's what I found in the knowledge base:\n"
+                        for i, item in enumerate(knowledge_results[:3]): # Show top 3 results
+                            final_answer += f"Result {i+1} from {item['source']}:\n"
+                            final_answer += item["content"][:200] + ("..." if len(item["content"]) > 200 else "") + "\n\n"
+                            if item.get("type") == "image" and item.get("path"):
+                                image_path_found = item["path"]
+                    else:
+                        final_answer = "No relevant information found in the knowledge base."
+                else:
+                    final_answer = backend_response.get("answer", "Unknown tool response.")
 
-[Background Knowledge]
-{context_str}
-[User Question]
-{last_user_query}
-"""
-            
-            print(f"📧 Sending request to Ollama...")
-            final_answer = generate_local_answer(prompt)
-            
-            # Print generated answer information
-            print(f"💬 Generated answer: {final_answer[:100]}...")
-            
-            # Image processing
-            image_path_found = None
-            for item in retrieved_context:
-                if item.get("type")=="image_context":
-                    image_path_found = item.get("metadata",{}).get("path")
-                    break
-            
-            # Add bot reply to history - including image information
-            if image_path_found:
-                st.session_state.chat_history.append({
-                    "role": "assistant", 
-                    "content": final_answer,
-                    "image_path": image_path_found
-                })
+                # Add bot reply to history - including image information
+                if image_path_found:
+                    st.session_state.chat_history.append({
+                        "role": "assistant", 
+                        "content": final_answer,
+                        "image_path": image_path_found
+                    })
+                else:
+                    st.session_state.chat_history.append({
+                        "role": "assistant", 
+                        "content": final_answer
+                    })
+                
+                print(f"✅ Backend processed request, answer: {final_answer[:100]}...")
             else:
-                st.session_state.chat_history.append({
-                    "role": "assistant", 
-                    "content": final_answer
-                })
+                error_msg = f"Backend error: {backend_response.get('error', 'Unknown error')}"
+                st.error(error_msg)
+                st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
+                print(f"❌ Backend error: {error_msg}")
             
-            # Redisplay entire chat history to include new reply
             st.rerun()
-            
-            # Print request processing completion information
-            print(f"✅ Backend has processed request and returned answer")
             
         except Exception as e:
             print(f"❌ Error occurred while processing request: {e}")

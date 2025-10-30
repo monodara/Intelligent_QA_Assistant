@@ -4,8 +4,8 @@ RAG Knowledge Base Management CLI
 Used to build/update knowledge base and launch conversation bot
 """
 import argparse
-from .knowledge_base import KnowledgeBaseManager
-from .build_kb import build_or_update_knowledge_base, main as run_build
+from .core.knowledge_base import KnowledgeBaseManager
+from .data_management.build_kb import build_or_update_knowledge_base, main as run_build
 from .main import main as run_bot
 from .config import DOCS_DIR, IMG_DIR
 

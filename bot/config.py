@@ -24,4 +24,4 @@ DEFAULT_RETRIEVAL_K = int(os.getenv("DEFAULT_RETRIEVAL_K", "7"))
 
 # System name configuration
 SYSTEM_NAME = os.getenv("SYSTEM_NAME", "Local RAG Assistant")
-SYSTEM_ROLE = os.getenv("SYSTEM_ROLE", "You are a professional assistant")
+SYSTEM_ROLE = os.getenv("SYSTEM_ROLE", "You are a professional assistant of a theme park.")

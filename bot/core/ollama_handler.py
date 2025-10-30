@@ -1,5 +1,5 @@
 import ollama
-from .config import OLLAMA_MODEL, OLLAMA_TEMPERATURE
+from ..config import OLLAMA_MODEL, OLLAMA_TEMPERATURE
 
 
 def generate_local_answer(prompt):

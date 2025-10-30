@@ -9,7 +9,7 @@ from PIL import Image
 from paddleocr import PaddleOCR
 from transformers import CLIPProcessor, CLIPModel
 from sentence_transformers import SentenceTransformer
-from .config import CLIP_MODEL_NAME
+from ..config import CLIP_MODEL_NAME
 
 
 class EmbeddingHandler:
