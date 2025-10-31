@@ -17,7 +17,7 @@ load_dotenv()
 @register_tool('execute_sql_query')
 class SQLTool(BaseTool):
     """
-    SQL Tool for executing PostgreSQL database queries
+    SQL Tool for communicating with PostgreSQL database
     """
     description = 'Convert natural language to SQL, execute it, and analyze the results.'
 
@@ -59,22 +59,11 @@ class SQLTool(BaseTool):
         User Qwen model to convert natural language to SQL
         """
         create_sql = """
--- Table: tkt_orders
+-- Table: visit_flow
 -- Columns:
--- order_time DATETIME             -- Order date and time
--- account_id INT                  -- ID of the user who booked
--- gov_id VARCHAR(18)              -- ID of the ticket user (e.g., ID card number)
--- gender VARCHAR(10)              -- Gender of the ticket user
--- age INT                         -- Age of the ticket user
--- province VARCHAR(30)            -- Province of the ticket user
--- SKU VARCHAR(100)                -- Product SKU name
--- product_serial_no VARCHAR(30)   -- Product ID
--- eco_main_order_id VARCHAR(20)   -- Order ID
--- sales_channel VARCHAR(20)       -- Sales channel
--- status VARCHAR(30)              -- Product status (used / unused)
--- order_value DECIMAL(10,2)       -- Order amount
--- quantity INT                    -- Quantity of the product
--- use_time TIMESTAMP              -- Time of ticket use, default if unused
+    visit_date DATE NOT NULL,                     -- Visit date (core field for daily aggregation)
+    entry_time TIMESTAMP WITH TIME ZONE,          -- Entry time (precise to seconds)
+    exit_time TIMESTAMP WITH TIME ZONE,           -- Exit time
 """
 
 
