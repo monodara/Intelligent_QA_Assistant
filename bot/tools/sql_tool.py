@@ -8,6 +8,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 
 import dashscope
+from dashscope import Generation
 import pandas as pd
 from sqlalchemy import create_engine
 from qwen_agent.tools.base import BaseTool, register_tool
@@ -56,7 +57,7 @@ class SQLTool(BaseTool):
 
     def nl_to_sql(self, query: str) -> str:
         """
-        User Qwen model to convert natural language to SQL
+        Convert natural language to SQL
         """
         create_sql = """
 -- Table: visit_flow
@@ -78,7 +79,8 @@ Write an SQL query that answers the question: `{query}`
 
 
         # Call Qwen LLM to generate SQL
-        response = dashscope.completions.create(
+        dashscope.api_key = self.llm_cfg["api_key"]
+        response =Generation.call(
             model=self.llm_cfg["model"],
             prompt=prompt,
             temperature=self.llm_cfg["temperature"],
@@ -86,16 +88,20 @@ Write an SQL query that answers the question: `{query}`
         )
 
         # Extract SQL from response
-        if response and len(response.choices) > 0:
-            sql_text = response.choices[0].text.strip()
-            # Remove ```sql and ``` suffix
-            if sql_text.startswith("```sql"):
-                sql_text = sql_text[6:].strip()
-            if sql_text.endswith("```"):
-                sql_text = sql_text[:-3].strip()
-            return sql_text
+        sql_text = getattr(response, "output", None)
 
-        return ""
+        # 如果不是字符串，转换为字符串
+        if not isinstance(sql_text, str):
+            sql_text = str(sql_text)
+
+        # 去掉 ```sql 开头和 ``` 结尾
+        sql_text = sql_text.strip()
+        if sql_text.startswith("```sql"):
+            sql_text = sql_text[6:].strip()
+        if sql_text.endswith("```"):
+            sql_text = sql_text[:-3].strip()
+
+        return sql_text or ""
 
     def execute_sql(self, sql: str) -> dict:
         try:
@@ -113,34 +119,37 @@ Write an SQL query that answers the question: `{query}`
         if not results:
             return "No data found for your query."
 
-        # 先把结果转换成简短的 JSON 或表格文本，传给 LLM
-        # 注意不要直接传太大数据，选前几行或做聚合
-        preview_results = results[:10]  # 取前10条数据
+        preview_results = results[:10]  # Temporarily limit to first 10 records
         results_str = json.dumps(preview_results, ensure_ascii=False)
 
         prompt = f"""
-    You are a helpful assistant for a theme park ticket system.
+    You are a professional data analysis assistant. Please help to answer the user's question based on the SQL query results provided.
     User asked: "{original_query}"
     The database query returned the following results (first 10 rows):
     {results_str}
 
     Please provide a clear, concise answer to the user's question based on the data above.
     """
-        # 调用 Qwen LLM
-        response = dashscope.completions.create(
+        # Call Qwen LLM
+        dashscope.api_key = self.llm_cfg["api_key"]
+        response = Generation.call(
             model=self.llm_cfg["model"],
             prompt=prompt,
             temperature=0.2,
             max_tokens=300
         )
+        print("LLM 响应:", response.output)
+        answer = getattr(response, "output", None)
 
-        if response and len(response.choices) > 0:
-            answer = response.choices[0].text.strip()
-            # 去掉可能的 ``` 等标记
-            if answer.startswith("```"):
-                answer = answer[3:].strip()
-            if answer.endswith("```"):
-                answer = answer[:-3].strip()
-            return answer
+        # If the response is not a string, convert it to string
+        if not isinstance(answer, str):
+            answer = str(answer)
 
-        return "Could not generate an answer from the query results."
+        # Remove code block markers if present
+        answer = answer.strip()
+        if answer.startswith("```"):
+            answer = answer[3:].strip()
+        if answer.endswith("```"):
+            answer = answer[:-3].strip()
+
+        return answer
