@@ -22,7 +22,7 @@ def main():
     rag_engine = RAGEngine()
     router = QueryRouter(rag_engine, metadata_store, text_index, image_index)
     register_tool('get_weather')(WeatherTool)
-    register_tool('execute_sql')(SQLTool)
+    register_tool('execute_sql_query')(SQLTool)
     register_tool('search_knowledge_base')(RAGTool)
 
     # Run Q&A loop

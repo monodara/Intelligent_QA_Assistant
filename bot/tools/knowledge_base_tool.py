@@ -4,7 +4,6 @@ import dotenv
 
 dotenv.load_dotenv()
         
-@register_tool('search_knowledge_base')       
 class RAGTool(BaseTool):
     """
     RAG tool for retrieving information from knowledge base

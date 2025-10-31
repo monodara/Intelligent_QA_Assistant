@@ -15,7 +15,6 @@ from qwen_agent.tools.base import BaseTool, register_tool
 
 load_dotenv()
 
-@register_tool('execute_sql_query')
 class SQLTool(BaseTool):
     """
     SQL Tool for communicating with PostgreSQL database
@@ -60,22 +59,22 @@ class SQLTool(BaseTool):
         Convert natural language to SQL
         """
         create_sql = """
--- Table: visit_flow
--- Columns:
-    visit_date DATE NOT NULL,                     -- Visit date (core field for daily aggregation)
-    entry_time TIMESTAMP WITH TIME ZONE,          -- Entry time (precise to seconds)
-    exit_time TIMESTAMP WITH TIME ZONE,           -- Exit time
-"""
+                    -- Table: visit_flow
+                    -- Columns:
+                        visit_date DATE NOT NULL,                     -- Visit date (core field for daily aggregation)
+                        entry_time TIMESTAMP WITH TIME ZONE,          -- Entry time (precise to seconds)
+                        exit_time TIMESTAMP WITH TIME ZONE,           -- Exit time
+                    """
 
 
         prompt = f"""-- language: SQL
-### Question: {query}
-### Table schema:
-{create_sql}
-### Response:
-Write an SQL query that answers the question: `{query}`
-```sql
-"""
+                    ### Question: {query}
+                    ### Table schema:
+                    {create_sql}
+                    ### Response:
+                    Write an SQL query that answers the question: `{query}`
+                    ```sql
+                    """
 
 
         # Call Qwen LLM to generate SQL
@@ -123,13 +122,13 @@ Write an SQL query that answers the question: `{query}`
         results_str = json.dumps(preview_results, ensure_ascii=False)
 
         prompt = f"""
-    You are a professional data analysis assistant. Please help to answer the user's question based on the SQL query results provided.
-    User asked: "{original_query}"
-    The database query returned the following results (first 10 rows):
-    {results_str}
+                You are a professional data analysis assistant. Please help to answer the user's question based on the SQL query results provided.
+                User asked: "{original_query}"
+                The database query returned the following results (first 10 rows):
+                {results_str}
 
-    Please provide a clear, concise answer to the user's question based on the data above.
-    """
+                Please provide a clear, concise answer to the user's question based on the data above.
+                """
         # Call Qwen LLM
         dashscope.api_key = self.llm_cfg["api_key"]
         response = Generation.call(
