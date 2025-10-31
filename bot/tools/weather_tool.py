@@ -7,6 +7,8 @@ from typing import Optional
 from qwen_agent.tools.base import BaseTool, register_tool
 import dotenv
 
+from ..core.ollama_handler import generate_local_answer
+
 dotenv.load_dotenv()
 
 
@@ -15,6 +17,7 @@ class WeatherTool(BaseTool):
     Retrieve weather information for a given location and date.
     If the date is too far in the future (beyond 7 days), returns historical averages.
     """
+    name = "get_weather"
     description = "Get current or forecast weather, or historical averages for a specific city and date."
     parameters = [
         {"name": "location", "type": "string", "description": "City name, e.g., Berlin", "required": True},
@@ -115,7 +118,9 @@ class WeatherTool(BaseTool):
         - For dates within next 7 days, use forecast.
         - For dates beyond 7 days, use historical average.
         """
+        print("WeatherTool call with params:", params)
         args = json.loads(params)
+        print("WeatherTool called with args:", args)
         location = args['location']
         date_str = args.get('date', None)
 
@@ -138,4 +143,23 @@ class WeatherTool(BaseTool):
             # use historical average
             result = self.get_historical_average(lat, lon, target_date, location)
 
-        return json.dumps(result, ensure_ascii=False)
+
+        prompt = f"""
+                You are an expert weather analyst. Change the weather JSON to natural language answer for the user.
+                - Return ONLY a concise, natural-language weather report.
+                - DO NOT include greeting phrases.
+                - The output should start directly with the weather sentence.
+
+                location: "{location}"
+                date: "{target_date.strftime('%Y-%m-%d')}"
+                The weather data returned as follows:
+                {result}
+
+                Answer:
+                """
+        answer = generate_local_answer(prompt)
+        return {
+                "success": True,
+                "answer": answer,
+            }
+

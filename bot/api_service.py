@@ -31,8 +31,12 @@ def _initialize_backend_components():
 
     if _query_router is None:
         print("Initializing QueryRouter in backend service...")
-        # Pass the already loaded components to the QueryRouter
-        _query_router = QueryRouter(_rag_engine, _metadata_store, _text_index, _image_index)
+        _query_router = QueryRouter(
+            rag_engine=_rag_engine,
+            metadata_store=_metadata_store,
+            text_index=_text_index,
+            image_index=_image_index
+        )
         print("QueryRouter initialized in backend service.")
 
 def handle_chat_query(query: str) -> Dict[str, Any]:
@@ -63,7 +67,15 @@ def reload_knowledge_base_backend() -> Dict[str, Any]:
     print("Reloading knowledge base in backend service...")
     _kb_manager = KnowledgeBaseManager()
     _metadata_store, _text_index, _image_index = _kb_manager.build_or_load_knowledge_base(DOCS_DIR, IMG_DIR)
+    
+    # Re-initialize RAGEngine and QueryRouter
     _rag_engine = RAGEngine()
-    _query_router = QueryRouter(_rag_engine, _metadata_store, _text_index, _image_index)
+    _query_router = QueryRouter(
+        rag_engine=_rag_engine,
+        metadata_store=_metadata_store,
+        text_index=_text_index,
+        image_index=_image_index
+    )
+    
     print("Knowledge base reloaded in backend service.")
     return {"success": True, "message": "Knowledge base reloaded successfully."}

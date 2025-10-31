@@ -21,9 +21,6 @@ def main():
     # Initialize RAG engine and query router
     rag_engine = RAGEngine()
     router = QueryRouter(rag_engine, metadata_store, text_index, image_index)
-    register_tool('get_weather')(WeatherTool)
-    register_tool('execute_sql_query')(SQLTool)
-    register_tool('search_knowledge_base')(RAGTool)
 
     # Run Q&A loop
     while True:
@@ -35,9 +32,8 @@ def main():
             
             print("\nThinking... 🤔\n")
             result = router.route_query(query)
-
-            print("--- Tool Used ---")
-            print(result.get("tool", "Unknown Tool"), "\n")
+            print("\n--- Result ---\n")
+            print(result)
 
             if result.get("success"):
                 # 通用输出

@@ -4,6 +4,7 @@ Used for querying tickets/visitor flow/historical data
 """
 import os
 import json
+import re
 from typing import Dict, Any
 from dotenv import load_dotenv
 
@@ -13,13 +14,19 @@ import pandas as pd
 from sqlalchemy import create_engine
 from qwen_agent.tools.base import BaseTool, register_tool
 
+from ..core.ollama_handler import generate_local_answer
+
 load_dotenv()
 
 class SQLTool(BaseTool):
     """
     SQL Tool for communicating with PostgreSQL database
     """
+    name = "text_to_sql"
     description = 'Convert natural language to SQL, execute it, and analyze the results.'
+    parameters = [
+        {"name": "query", "type": "string", "description": "Natural language query"}
+    ]
 
     def __init__(self, cfg=None):
         # Use environment variable or default connection string
@@ -32,16 +39,23 @@ class SQLTool(BaseTool):
             "timeout": 30
         }
     
-    def call(self, params: str) -> str:
+    def call(self, params: str, **kwargs) -> str:
         """
         Qwen Agent call interface
         params: JSON {"query": "Natural language query"}
         """
-        args = json.loads(params)
-        query = args.get("query", "")
+        if isinstance(params, str):
+            query_text = params
+        elif isinstance(params, dict):
+            query_text = params.get("query") or params.get("text") or ""
+        else:
+            query_text = ""
+
+        if not query_text.strip():
+            return {"success": False, "error": "No SQL query text provided."}
         
         # Step 1: Use LLM to convert natural language to SQL
-        sql = self.nl_to_sql(query)
+        sql = self.nl_to_sql(query_text)
         if not sql:
             return json.dumps({"success": False, "error": "Unable to generate SQL"}, ensure_ascii=False)
         
@@ -51,7 +65,7 @@ class SQLTool(BaseTool):
             return json.dumps(sql_result, ensure_ascii=False)
         
         # Step 3: Analyse results based on original query
-        answer = self.analyze_results(sql_result["results"], query)
+        answer = self.analyze_results(sql_result["results"], query_text)
         return json.dumps({"success": True, "sql": sql, "answer": answer, "data": sql_result["results"]}, ensure_ascii=False)
 
     def nl_to_sql(self, query: str) -> str:
@@ -86,19 +100,28 @@ class SQLTool(BaseTool):
             max_tokens=300
         )
 
-        # Extract SQL from response
         sql_text = getattr(response, "output", None)
 
-        # 如果不是字符串，转换为字符串
+        # 如果不是字符串，先转为字符串
         if not isinstance(sql_text, str):
             sql_text = str(sql_text)
 
-        # 去掉 ```sql 开头和 ``` 结尾
-        sql_text = sql_text.strip()
-        if sql_text.startswith("```sql"):
-            sql_text = sql_text[6:].strip()
-        if sql_text.endswith("```"):
-            sql_text = sql_text[:-3].strip()
+        # 1️⃣ 尝试从 JSON 中提取 "text" 字段
+        try:
+            data = json.loads(sql_text)
+            if "text" in data:
+                sql_text = data["text"]
+        except Exception:
+            # 如果解析失败，就直接用原始字符串
+            pass
+
+        # 2️⃣ 用正则提取 ```sql ... ``` 中间的部分（去掉解释内容）
+        match = re.search(r"```sql\s*(.*?)\s*```", sql_text, re.DOTALL)
+        if match:
+            sql_text = match.group(1).strip()
+
+        # 3️⃣ 再清理残余的 Markdown 标记
+        sql_text = sql_text.replace("```", "").strip()
 
         return sql_text or ""
 
@@ -122,33 +145,25 @@ class SQLTool(BaseTool):
         results_str = json.dumps(preview_results, ensure_ascii=False)
 
         prompt = f"""
-                You are a professional data analysis assistant. Please help to answer the user's question based on the SQL query results provided.
-                User asked: "{original_query}"
-                The database query returned the following results (first 10 rows):
+                You are an expert data analyst assistant. Answer the user's question based on the SQL query results.
+
+                User question: "{original_query}"
+
+                The SQL query returned the following results (first 10 rows or aggregation results):
                 {results_str}
 
-                Please provide a clear, concise answer to the user's question based on the data above.
+                Instructions:
+                1. The results may include aggregated or summary data (e.g., MAX, COUNT, etc.).
+                2. Even if the SQL result has only one row, provide a complete, concise natural language answer to the user's question.
+                3. Focus only on the information in the SQL results.
+                4. Keep the answer clear and precise, suitable for end-user understanding.
+
+                Answer:
                 """
-        # Call Qwen LLM
-        dashscope.api_key = self.llm_cfg["api_key"]
-        response = Generation.call(
-            model=self.llm_cfg["model"],
-            prompt=prompt,
-            temperature=0.2,
-            max_tokens=300
-        )
-        print("LLM 响应:", response.output)
-        answer = getattr(response, "output", None)
-
-        # If the response is not a string, convert it to string
-        if not isinstance(answer, str):
-            answer = str(answer)
-
-        # Remove code block markers if present
-        answer = answer.strip()
-        if answer.startswith("```"):
-            answer = answer[3:].strip()
-        if answer.endswith("```"):
-            answer = answer[:-3].strip()
+        answer = generate_local_answer(prompt)
+        return {
+                "success": True,
+                "answer": answer,
+            }
 
         return answer

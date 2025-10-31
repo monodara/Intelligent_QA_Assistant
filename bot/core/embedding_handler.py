@@ -6,7 +6,23 @@ os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
 import numpy as np
 import torch
 from PIL import Image
+import sys, types
+
+# --- Patch for old PaddleX expecting old LangChain structure ---
+try:
+    import langchain_core.documents as lcd
+    sys.modules["langchain.docstore"] = types.ModuleType("langchain.docstore")
+    sys.modules["langchain.docstore.document"] = types.ModuleType("langchain.docstore.document")
+    sys.modules["langchain.docstore.document"].Document = lcd.Document
+    import langchain_text_splitters as lts
+    sys.modules["langchain.text_splitter"] = types.ModuleType("langchain.text_splitter")
+    sys.modules["langchain.text_splitter"].RecursiveCharacterTextSplitter = lts.RecursiveCharacterTextSplitter
+except Exception as e:
+    print(f"[Warning] LangChain compatibility patch failed: {e}")
+
+# --- Now safely import PaddleOCR ---
 from paddleocr import PaddleOCR
+
 from transformers import CLIPProcessor, CLIPModel
 from sentence_transformers import SentenceTransformer
 from ..config import CLIP_MODEL_NAME
