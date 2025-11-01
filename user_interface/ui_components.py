@@ -175,8 +175,8 @@ def render_page_header():
     """Render page header"""
     from bot.config import SYSTEM_NAME
     st.markdown(get_theme_styles(), unsafe_allow_html=True)
-    st.markdown(f'<div class="modern-theme"><h2>🤖 {SYSTEM_NAME} Assistant 🤖</h2></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="main-header"><h1>✨ Welcome to {SYSTEM_NAME} Intelligent Q&A Center ✨</h1><p>Please ask questions related to your domain</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="modern-theme"><h2>🤖 {SYSTEM_NAME} 🤖</h2></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="main-header"><h1>✨ Welcome to Use {SYSTEM_NAME} ✨</h1></div>', unsafe_allow_html=True)
 
 def render_knowledge_base_controls():
     """Render knowledge base control buttons"""
@@ -188,10 +188,8 @@ def render_knowledge_base_controls():
                 st.session_state.chat_history = []  # Clear chat history
     
     with col1:
-        if st.session_state.metadata_store is not None:
+        if st.session_state.get('metadata_store') is not None:
             st.success("✅ Knowledge Base Loaded")
-        else:
-            st.warning("⚠️ Knowledge Base Not Loaded")
 
 def render_common_questions():
     """Render common questions section"""
