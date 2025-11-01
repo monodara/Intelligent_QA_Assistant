@@ -14,7 +14,7 @@ from pathlib import Path
 
 def main():
     st.set_page_config(
-        page_title="Local RAG - Admin Panel",
+        page_title="RAG-based Knowledge Management - Admin Panel",
         page_icon="📚",
         layout="wide"
     )
@@ -62,7 +62,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<div class="main-header"><h1>📚 Local RAG - Admin Panel</h1><h3>Knowledge Base Management Tool</h3></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><h1>📚 Admin Panel</h1><h3>Knowledge Base Management Tool</h3></div>', unsafe_allow_html=True)
     
     # File upload section
     st.markdown("### 📁 Upload New Content to Knowledge Base")

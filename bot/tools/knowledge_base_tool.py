@@ -95,11 +95,12 @@ class RAGTool(BaseTool):
                 final_answer += f"\n\n(Found related image: {image_path_found})"
 
             # --- Step 4: Return the final answer and sources ---
-            return {
+            output = {
                 "success": True,
                 "answer": final_answer,
                 "results": retrieved_context
             }
+            return json.dumps(output, ensure_ascii=False)
 
         except Exception as e:
             import traceback

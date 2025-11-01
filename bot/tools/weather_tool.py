@@ -158,8 +158,9 @@ class WeatherTool(BaseTool):
                 Answer:
                 """
         answer = generate_local_answer(prompt)
-        return {
-                "success": True,
-                "answer": answer,
-            }
+        output = {
+            "success": True,
+            "answer": answer,
+        }
+        return json.dumps(output, ensure_ascii=False)
 

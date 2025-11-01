@@ -45,14 +45,18 @@ class SQLTool(BaseTool):
         params: JSON {"query": "Natural language query"}
         """
         if isinstance(params, str):
-            query_text = params
+            try:
+                params_dict = json.loads(params)
+                query_text = params_dict.get("query", params)
+            except json.JSONDecodeError:
+                query_text = params
         elif isinstance(params, dict):
             query_text = params.get("query") or params.get("text") or ""
         else:
             query_text = ""
 
         if not query_text.strip():
-            return {"success": False, "error": "No SQL query text provided."}
+            return json.dumps({"success": False, "error": "No SQL query text provided."}, ensure_ascii=False)
         
         # Step 1: Use LLM to convert natural language to SQL
         sql = self.nl_to_sql(query_text)
@@ -65,8 +69,16 @@ class SQLTool(BaseTool):
             return json.dumps(sql_result, ensure_ascii=False)
         
         # Step 3: Analyse results based on original query
-        answer = self.analyze_results(sql_result["results"], query_text)
-        return json.dumps({"success": True, "sql": sql, "answer": answer, "data": sql_result["results"]}, ensure_ascii=False)
+        answer_str = self.analyze_results(sql_result["results"], query_text)
+
+        # Step 4: Construct the final dictionary and return as a JSON string
+        output = {
+            "success": True,
+            "sql": sql,
+            "answer": answer_str,
+            "data": sql_result["results"]
+        }
+        return json.dumps(output, ensure_ascii=False)
 
     def nl_to_sql(self, query: str) -> str:
         """
@@ -161,9 +173,4 @@ class SQLTool(BaseTool):
                 Answer:
                 """
         answer = generate_local_answer(prompt)
-        return {
-                "success": True,
-                "answer": answer,
-            }
-
         return answer
