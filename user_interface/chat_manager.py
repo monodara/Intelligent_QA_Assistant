@@ -59,7 +59,7 @@ def process_pending_queries():
 def _generate_and_process_answer(last_user_query):
     """Generate and process answer by calling the backend service"""
     
-    with st.spinner("RAG Assistant is thinking..."):
+    with st.spinner("Assistant is thinking..."):
         try:
             print(f"✅ Frontend sending query to backend: {last_user_query}")
             

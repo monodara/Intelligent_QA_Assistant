@@ -224,7 +224,7 @@ def render_chat_history():
             else:
                 # Display assistant response
                 from bot.config import SYSTEM_NAME
-                st.markdown(f'<div class="assistant-message"><div class="assistant-bubble">🤖 {SYSTEM_NAME} Assistant: {chat["content"]}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="assistant-message"><div class="assistant-bubble">🤖 {SYSTEM_NAME}: {chat["content"]}</div></div>', unsafe_allow_html=True)
                 # Display related images if any
                 if "image_path" in chat and chat["image_path"]:
                     try:
