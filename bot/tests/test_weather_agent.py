@@ -18,7 +18,7 @@ register_tool("get_weather")(WeatherTool)
 def weather_assistant():
     """Initialize the Assistant that only uses the weather tool"""
     llm_cfg = {
-        "model": os.getenv("QWEN_MODEL", "qwen-turbo"),
+        "model": "qwen-turbo",
         "temperature": 0.2,
         "timeout": 30,
         "retry_count": 3,

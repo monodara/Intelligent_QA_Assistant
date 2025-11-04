@@ -24,7 +24,7 @@ class QueryRouter:
 
         # Configure the LLM for the agent
         self.llm_cfg = {
-            'model': os.getenv('QWEN_MODEL', 'qwen-turbo'),
+            'model': 'qwen-turbo',
             'api_key': os.getenv('DASHSCOPE_API_KEY', ''),
             'temperature': 0.2,
             'timeout': 30,

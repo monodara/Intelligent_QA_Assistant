@@ -33,7 +33,7 @@ class SQLTool(BaseTool):
         self.engine = create_engine(os.getenv('POSTGRES_CONNECTION_STRING'))
 
         self.llm_cfg = {
-            "model": os.getenv("QWEN_MODEL", "qwen-turbo"),
+            "model": "qwen-turbo",
             "api_key": os.getenv("DASHSCOPE_API_KEY", ""),
             "temperature": 0.1,
             "timeout": 30
