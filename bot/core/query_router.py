@@ -56,7 +56,7 @@ class QueryRouter:
             - {weather_tool_instance.name}: {weather_tool_instance.description}
             - {sql_tool_instance.name}: {sql_tool_instance.description}
             - {rag_tool_instance.name}: {rag_tool_instance.description}
-            - map_tool: Use this tool to get location-based information, plan routes using Google Maps API.
+            - map_tool: Plan routes and get location-based information using Google Maps API.
 
             CRITICAL RULES:
             - You MUST call a tool function for every user query.

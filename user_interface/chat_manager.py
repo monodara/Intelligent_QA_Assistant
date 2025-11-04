@@ -2,11 +2,9 @@ import json
 import streamlit as st
 import sys
 import os
-# 将项目根目录添加到Python路径
+import requests
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from knowledge_manager import ensure_knowledge_base_loaded
-from bot.api_service import handle_chat_query # Import the backend service function
 
 def initialize_session_state():
     """Initialize session state"""
@@ -61,10 +59,16 @@ def _generate_and_process_answer(last_user_query):
     
     with st.spinner("Assistant is thinking..."):
         try:
-            print(f"✅ Frontend sending query to backend: {last_user_query}")
+            response = requests.post(
+                "http://127.0.0.1:8000/ask",
+                json={"query": last_user_query},
+                timeout=120  # 超时时间可调
+            )
             
-            # Call the backend service to handle the query
-            backend_response = handle_chat_query(last_user_query)
+            if response.status_code != 200:
+                raise RuntimeError(f"Backend returned HTTP {response.status_code}: {response.text}")
+            
+            backend_response = response.json()
             
             if backend_response.get("success"):
                 tool_output_str = backend_response.get("result")
@@ -80,9 +84,8 @@ def _generate_and_process_answer(last_user_query):
 
                 if tool_output.get("success"):
                     final_answer = tool_output.get("answer", "The tool ran successfully but provided no answer.")
-                    
+
                     image_path_found = None
-                    # For RAG tool, check for an image in the source results
                     if backend_response.get("tool") == "search_knowledge_base":
                         source_results = tool_output.get("results", [])
                         for item in source_results:
@@ -95,12 +98,12 @@ def _generate_and_process_answer(last_user_query):
                         message_to_append["image_path"] = image_path_found
                     st.session_state.chat_history.append(message_to_append)
 
-                else: # The tool call itself failed
+                else:
                     error_msg = f"The assistant tried to use a tool, but it failed: {tool_output.get('error', 'Unknown tool error')}"
                     st.error(error_msg)
                     st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
 
-            else: # The backend router failed
+            else:
                 error_msg = f"Backend error: {backend_response.get('error', 'Unknown error')}"
                 st.error(error_msg)
                 st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
