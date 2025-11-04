@@ -21,6 +21,20 @@ class QueryRouter:
         sql_tool_instance = SQLTool()
         weather_tool_instance = WeatherTool()
         rag_tool_instance = RAGTool(rag_engine, metadata_store, text_index, image_index)
+        map_tool = {
+            "mcpServers": {
+                "google-maps": {
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-google-maps"
+                ],
+                "command": "npx",
+                "env": {
+                    "GOOGLE_MAPS_API_KEY": os.getenv("GOOGLE_MAPS_API_KEY", "")
+                }
+                }
+            }
+            }
 
         # Configure the LLM for the agent
         self.llm_cfg = {
@@ -38,19 +52,20 @@ class QueryRouter:
             description='Intelligent assistant that can query weather, database, and knowledge base',
             system_message=f"""{SYSTEM_ROLE}. Use tools to answer queries.
 
-Tools:
-- {weather_tool_instance.name}: {weather_tool_instance.description}
-- {sql_tool_instance.name}: {sql_tool_instance.description}
-- {rag_tool_instance.name}: {rag_tool_instance.description}
+            Tools:
+            - {weather_tool_instance.name}: {weather_tool_instance.description}
+            - {sql_tool_instance.name}: {sql_tool_instance.description}
+            - {rag_tool_instance.name}: {rag_tool_instance.description}
+            - map_tool: Use this tool to get location-based information, plan routes using Google Maps API.
 
-CRITICAL RULES:
-- You MUST call a tool function for every user query.
-- NEVER answer directly without calling a tool.
-- Parameters MUST be provided in valid JSON format.
-- Extract parameter values from the user's question.
-- If unsure which tool to use, default to search_knowledge_base.
-""",
-            function_list=[weather_tool_instance, sql_tool_instance, rag_tool_instance],
+            CRITICAL RULES:
+            - You MUST call a tool function for every user query.
+            - NEVER answer directly without calling a tool.
+            - Parameters MUST be provided in valid JSON format.
+            - Extract parameter values from the user's question.
+            - If unsure which tool to use, default to search_knowledge_base.
+            """,
+            function_list=[weather_tool_instance, sql_tool_instance, rag_tool_instance, map_tool],
         )
 
     def route_query(self, query: str) -> dict:

@@ -20,10 +20,10 @@ load_dotenv()
 
 class SQLTool(BaseTool):
     """
-    SQL Tool for communicating with PostgreSQL database
+    SQL Tool for answering questions about visit flow, low/high, slack/peak seasons by communicating with PostgreSQL database
     """
     name = "text_to_sql"
-    description = 'Convert natural language to SQL, execute it, and analyze the results.'
+    description = 'Answer queries about visit flow, low/high, slack/peak seasons by converting natural language to SQL, executing it, and analyzing the results.'
     parameters = [
         {"name": "query", "type": "string", "description": "Natural language query"}
     ]
