@@ -26,6 +26,12 @@ def initialize_session_state():
         st.session_state.temp_question = None
     if 'pending_query' not in st.session_state:
         st.session_state.pending_query = None
+    if 'just_received_response' not in st.session_state:
+        st.session_state.just_received_response = False
+    if 'backend_status_checked' not in st.session_state:
+        st.session_state.backend_status_checked = False
+    if 'backend_is_ready' not in st.session_state:
+        st.session_state.backend_is_ready = False
 
 def handle_user_query(query):
     """Handle user query"""
@@ -35,24 +41,33 @@ def handle_user_query(query):
         
         # Add user question to history
         st.session_state.chat_history.append({"role": "user", "content": query})
-        # Rerun page to display user message, but don't clear input immediately (form handles it automatically)
+        # Rerun page to display user message
         st.rerun()  # Rerun page
 
 def process_pending_queries():
     """Process pending user messages"""
-    if st.session_state.chat_history and st.session_state.chat_history[-1]["role"] == "user":
-        last_user_query = st.session_state.chat_history[-1]["content"]
-        # Check if there is already a corresponding assistant reply
-        # If chat history length is less than 2, or last one is not assistant reply, need to process
-        if len(st.session_state.chat_history) < 2:
+    # Only process if we didn't just receive a response in the last cycle
+    # to avoid infinite loop after an assistant response was added
+    if st.session_state.get('just_received_response', False):
+        # Reset the flag after checking
+        st.session_state.just_received_response = False
+        return
+
+    # If the last message in chat history is from user, it means it's a new query that needs processing
+    # Also process if the last message is an error message from assistant to retry
+    if st.session_state.chat_history:
+        last_message = st.session_state.chat_history[-1]
+        if last_message["role"] == "user":
+            last_user_query = last_message["content"]
             _generate_and_process_answer(last_user_query)
-        else:
-            last_but_one = st.session_state.chat_history[-2]
-            # Process if last is user message and second-to-last is not assistant reply or is error message
-            if (last_but_one["role"] != "assistant" or
-                last_but_one["content"].startswith("Answer generation failed") or
-                last_but_one["content"].startswith("❌")):
-                _generate_and_process_answer(last_user_query)
+        elif (last_message["role"] == "assistant" and 
+              (last_message["content"].startswith("Answer generation failed") or
+               last_message["content"].startswith("❌"))):
+            # If last message was an error from assistant, retry the previous user query
+            if len(st.session_state.chat_history) >= 2:
+                previous_message = st.session_state.chat_history[-2]
+                if previous_message["role"] == "user":
+                    _generate_and_process_answer(previous_message["content"])
 
 def _generate_and_process_answer(last_user_query):
     """Generate and process answer by calling the backend service"""
@@ -108,8 +123,6 @@ def _generate_and_process_answer(last_user_query):
                 st.error(error_msg)
                 st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
             
-            st.rerun()
-            
         except Exception as e:
             print(f"❌ Error occurred while processing request: {e}")
             import traceback
@@ -117,4 +130,8 @@ def _generate_and_process_answer(last_user_query):
             error_msg = f"Answer generation failed: {e}"
             st.error(error_msg)
             st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
-            st.rerun()
+
+    # Set flag to indicate we just received a response to prevent reprocessing
+    st.session_state.just_received_response = True
+    # 重新运行页面以更新UI
+    st.rerun()

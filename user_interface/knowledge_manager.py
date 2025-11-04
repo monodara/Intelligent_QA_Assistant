@@ -62,10 +62,20 @@ def get_kb_status():
 
 def ensure_backend_ready():
     """
-    Ensure the backend service is running.
+    Ensure the backend service is running with session-based caching.
     """
-    try:
-        return check_backend_health()
-    except Exception as e:
-        print(f"❌ Failed to ensure backend is ready: {e}")
-        return False
+    # Initialize backend status in session state if not already present
+    if 'backend_status_checked' not in st.session_state:
+        st.session_state.backend_status_checked = False
+        st.session_state.backend_is_ready = False
+    
+    # If we haven't checked backend status yet in this session, do it now
+    if not st.session_state.backend_status_checked:
+        try:
+            st.session_state.backend_is_ready = check_backend_health()
+            st.session_state.backend_status_checked = True
+        except Exception as e:
+            print(f"❌ Failed to ensure backend is ready: {e}")
+            st.session_state.backend_is_ready = False
+    
+    return st.session_state.backend_is_ready

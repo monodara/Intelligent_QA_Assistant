@@ -22,8 +22,13 @@ def main():
     # Render page header
     render_page_header()
     
-    # Check if backend is ready (no automatic loading on every refresh)
-    backend_ready = ensure_backend_ready()
+    # Check if backend was already checked in this session
+    if not st.session_state.get('backend_status_checked', False):
+        # First time checking backend status in this session
+        backend_ready = ensure_backend_ready()
+    else:
+        # Use previously checked backend status
+        backend_ready = st.session_state.get('backend_is_ready', False)
 
     # Check knowledge base status
     kb_status = get_kb_status() if backend_ready else {"is_loaded": False, "error": "Backend not accessible"}
