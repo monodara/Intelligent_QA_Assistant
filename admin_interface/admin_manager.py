@@ -1,10 +1,10 @@
 import streamlit as st
 import sys
 import os
-# 将项目根目录添加到Python路径
+# Add the project root directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from bot.knowledge_base import KnowledgeBaseManager
+from ..bot.core.knowledge_base import KnowledgeBaseManager
 from bot.config import DOCS_DIR, IMG_DIR
 import os
 import tempfile

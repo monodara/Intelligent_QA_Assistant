@@ -21,7 +21,7 @@ def build_or_update_knowledge_base(docs_dir=DOCS_DIR, img_dir=IMG_DIR, increment
         # Rebuild entire knowledge base
         metadata_store, text_index, image_index = kb_manager.build_initial_knowledge_base(docs_dir, img_dir)
     
-    print(f"Knowledge base {'incremental update' if incremental else 'building'} completed! Contains {len(metadata_store)} document fragments.")
+    print(f"Knowledge base {'incremental update' if incremental else 'building'} completed! Contains {len(metadata_store)} document chunks.")
     return metadata_store, text_index, image_index
 
 

@@ -77,7 +77,7 @@ def _generate_and_process_answer(last_user_query):
             response = requests.post(
                 "http://127.0.0.1:8000/ask",
                 json={"query": last_user_query},
-                timeout=120  # 超时时间可调
+                timeout=120  # Timeout can be adjusted
             )
             
             if response.status_code != 200:
@@ -133,5 +133,5 @@ def _generate_and_process_answer(last_user_query):
 
     # Set flag to indicate we just received a response to prevent reprocessing
     st.session_state.just_received_response = True
-    # 重新运行页面以更新UI
+    # Rerun page to update UI
     st.rerun()

@@ -16,7 +16,8 @@ An advanced, local-first AI assistant that uses a tool-based agent architecture 
 - **Intelligent Agent with Function Calling**: Uses the Qwen Agent framework with advanced function calling capabilities to understand user intent and automatically route queries to the correct specialized tool.
 - **Advanced Text-to-SQL**: Converts natural language questions into SQL queries to fetch data from a PostgreSQL database, enabling non-technical users to query structured data with plain English.
 - **Multi-modal RAG**: Retrieves information from text documents (.docx, .pdf, .txt) and images to answer questions.
-- **Live Weather Tool**: Connects to an external API to provide real-time weather forecasts.
+- **Weather Tool**: Connects to an external API to provide real-time weather forecasts.
+- **MCP Integration**: [Model Context Protocol](https://modelcontextprotocol.dev/) support for enhanced tool integration and context management.
 - **Dual Interface Design**: Separate admin and user interfaces for a clean and focused user experience.
 - **Drag & Drop Upload**: Intuitive file upload for building and extending the knowledge base.
 - **Incremental Updates**: Add new documents and images without rebuilding the entire vector store.
@@ -32,6 +33,7 @@ An advanced, local-first AI assistant that uses a tool-based agent architecture 
 - **Database**: [PostgreSQL](https://www.postgresql.org/) for structured data querying via the Text-to-SQL tool.
 - **Embeddings**: [Sentence Transformers](https://www.sbert.net/) and [CLIP](https://openai.com/research/clip) models for text and image vectorization.
 - **OCR**: [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) for image text extraction.
+- **MCP**: [Model Context Protocol](https://modelcontextprotocol.dev/) for enhanced tool integration and model interaction.
 
 ## Architecture Overview
 

@@ -1,8 +1,3 @@
-from qwen_agent.tools.base import register_tool
-
-from .tools.knowledge_base_tool import RAGTool
-from .tools.sql_tool import SQLTool
-from .tools.weather_tool import WeatherTool
 from .core.knowledge_base import KnowledgeBaseManager
 from .core.rag_engine import RAGEngine
 from .core.query_router import QueryRouter
@@ -36,28 +31,23 @@ def main():
             print(result)
 
             if result.get("success"):
-                # 通用输出
+                # General output
                 print("--- Assistant Answer ---\n")
 
-                # 优先打印分析性回答
+                # Prioritize analytical responses
                 if "answer" in result:
                     print(result["answer"], "\n")
 
-                # 如果有数据（SQL结果等），展示前几行
-                if "data" in result:
-                    rows = result["data"]
-                    print(f"Returned {len(rows)} rows\n")
-                    for row in rows[:5]:  # 只显示前5行
-                        print("  ", row)
+                # If there is data (SQL results, etc.), show the first few rows\n                if \"data\" in result:\n                    rows = result[\"data\"]\n                    print(f\"Returned {len(rows)} rows\\n\")\n                    for row in rows[:5]:  # Only show first 5 rows\n                        print(\"  \", row)
 
-                # 知识库结果
+                # Knowledge base results
                 elif "knowledge_base_results" in result:
                     for i, item in enumerate(result["knowledge_base_results"][:3]):
                         print(f"Result {i+1} from {item['source']}:")
                         print(item["content"][:200] + ("..." if len(item["content"]) > 200 else ""))
                         print()
 
-                # 天气信息
+                # Weather information
                 elif "weather_data" in result:
                     w = result["weather_data"]
                     print(f"Weather in {w['location']}, {w['country']}: {w['description']}")

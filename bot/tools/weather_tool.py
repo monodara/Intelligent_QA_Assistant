@@ -37,7 +37,7 @@ class WeatherTool(BaseTool):
         """Parse natural language or explicit date string."""
         if not date_str:
             return datetime.today()
-        parsed = dateparser.parse(date_str, languages=["en", "zh"])
+        parsed = dateparser.parse(date_str, languages=["en"])
         return parsed if parsed else datetime.today()
 
     def get_coords(self, location: str):
@@ -146,7 +146,7 @@ class WeatherTool(BaseTool):
 
         prompt = f"""
                 You are an expert weather analyst. Change the weather JSON to natural language answer for the user.
-                - Return ONLY a concise, natural-language weather report.
+                - Return ONLY a concise but detailed, natural-language weather report.
                 - DO NOT include greeting phrases.
                 - The output should start directly with the weather sentence.
 

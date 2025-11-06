@@ -1,8 +1,8 @@
 """
 Usage example: How to add new documents to knowledge base (supports nested directories)
 """
-from bot.knowledge_base import KnowledgeBaseManager
-from bot.config import DOCS_DIR, IMG_DIR
+from ..bot.core.knowledge_base import KnowledgeBaseManager
+from .config import DOCS_DIR, IMG_DIR
 
 
 def add_new_documents_to_knowledge_base(new_docs_dir, new_img_dir=None):
@@ -62,4 +62,4 @@ if __name__ == "__main__":
     # Example: Add new documents in nested directories to existing knowledge base
     # add_new_documents_to_knowledge_base("new_documents_with_nested_dirs", "new_images_with_nested_dirs")
     
-    print("\nNote: System will automatically recursively scan document files in specified directory and all its subdirectories.")
+    print("Note: System will automatically recursively scan document files in specified directory and all its subdirectories.")

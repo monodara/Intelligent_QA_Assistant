@@ -114,25 +114,25 @@ class SQLTool(BaseTool):
 
         sql_text = getattr(response, "output", None)
 
-        # 如果不是字符串，先转为字符串
+        # If not a string, convert to string first
         if not isinstance(sql_text, str):
             sql_text = str(sql_text)
 
-        # 1️⃣ 尝试从 JSON 中提取 "text" 字段
+        # 1️⃣ Try to extract "text" field from JSON
         try:
             data = json.loads(sql_text)
             if "text" in data:
                 sql_text = data["text"]
         except Exception:
-            # 如果解析失败，就直接用原始字符串
+            # If parsing fails, use the original string directly
             pass
 
-        # 2️⃣ 用正则提取 ```sql ... ``` 中间的部分（去掉解释内容）
+        # 2️⃣ Extract the content between ```sql ... ``` (remove explanations)
         match = re.search(r"```sql\s*(.*?)\s*```", sql_text, re.DOTALL)
         if match:
             sql_text = match.group(1).strip()
 
-        # 3️⃣ 再清理残余的 Markdown 标记
+        # 3️⃣ Clean up remaining Markdown markers
         sql_text = sql_text.replace("```", "").strip()
 
         return sql_text or ""

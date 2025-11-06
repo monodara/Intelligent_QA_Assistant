@@ -6,7 +6,7 @@ from .core.rag_engine import RAGEngine
 from .core.query_router import QueryRouter
 from .config import DOCS_DIR, IMG_DIR
 
-# 全局对象（只在服务启动时初始化一次）
+# Global objects (initialized only once when service starts)
 _kb_manager: KnowledgeBaseManager = None
 _rag_engine: RAGEngine = None
 _query_router: QueryRouter = None

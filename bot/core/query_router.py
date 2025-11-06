@@ -1,9 +1,12 @@
 """
 Query Router for the intelligent assistant using Qwen Agent
 """
+import json
 import os
 from dotenv import load_dotenv
 from qwen_agent.agents import Assistant
+
+from ..core.ollama_handler import generate_local_answer
 
 from ..tools.weather_tool import WeatherTool
 from ..tools.sql_tool import SQLTool
@@ -81,10 +84,22 @@ class QueryRouter:
                     last_message = response[-1]
                     # The tool's output is in the 'content' of the 'function' role message
                     if last_message.get('role') == 'function':
+                        tool_name = last_message.get("name", "")
+                        content = last_message.get("content", "")
+
+                        #if map_tool is used, parse the response
+                        if "maps" in tool_name.lower():
+                            parsed_answer = _parse_maps_response(content)
+                            return {
+                                "success": True,
+                                "tool": tool_name,
+                                "result": parsed_answer
+                            }
+
                         return {
                             "success": True,
-                            "tool": last_message.get("name"),
-                            "result": last_message.get("content")
+                            "tool": tool_name,
+                            "result": content
                         }
 
             # Fallback if no tool was called
@@ -94,3 +109,15 @@ class QueryRouter:
             import traceback
             print(f"❌ Router error traceback:\n{traceback.format_exc()}")
             return {"success": False, "tool": "unknown", "error": f"Error routing query: {repr(e)}"}
+        
+def _parse_maps_response(content: any):
+    # Extract relevant information from the maps API response
+    prompt = f"""
+            You are an expert assistant for parsing Google Maps API responses. 
+            Convert the following content into a concise, user-friendly natural language description.
+            Response:
+            {content}
+            Answer:
+            """
+    answer = generate_local_answer(prompt)
+    return answer

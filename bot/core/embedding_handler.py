@@ -1,5 +1,5 @@
 import os
-# 设置环境变量以避免meta tensor问题
+# Set environment variables to avoid meta tensor issues
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
 

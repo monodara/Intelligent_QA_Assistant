@@ -47,7 +47,7 @@ class RAGTool(BaseTool):
                             "type": match.get("type", "text")
                         })
             
-            if any(keyword in query.lower() for keyword in ["poster", "图片", "看看", "活动", "长什么样"]):
+            if any(keyword in query.lower() for keyword in ["poster", "image", "picture", "activity", "what does it look like"]):
                 query_vec_img = self.rag_engine.embedding_handler.get_clip_text_embedding_cpu(query).reshape(1, -1)
                 distances, image_ids = self.image_index.search(query_vec_img, 1)
                 
