@@ -95,7 +95,9 @@ def _generate_and_process_answer(last_user_query):
                     elif isinstance(tool_output_str, dict):
                         tool_output = tool_output_str
                 except (json.JSONDecodeError, TypeError):
-                    tool_output = {"success": False, "error": str(tool_output_str)}
+                    # For map tool responses (and potentially other tools), the result might already be a processed answer string
+                    # In this case, treat it as a successful response with the string as the answer
+                    tool_output = {"success": True, "answer": str(tool_output_str)}
 
                 if tool_output.get("success"):
                     final_answer = tool_output.get("answer", "The tool ran successfully but provided no answer.")
