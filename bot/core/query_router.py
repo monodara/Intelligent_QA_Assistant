@@ -115,6 +115,7 @@ def _parse_maps_response(content: any):
     prompt = f"""
             You are an expert assistant for parsing Google Maps API responses. 
             Convert the following content into a concise, user-friendly natural language description.
+            Answer in the same language as the user query.
             Response:
             {content}
             Answer:

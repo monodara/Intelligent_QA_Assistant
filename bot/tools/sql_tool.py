@@ -157,7 +157,9 @@ class SQLTool(BaseTool):
         results_str = json.dumps(preview_results, ensure_ascii=False)
 
         prompt = f"""
-                You are an expert data analyst assistant. Answer the user's question based on the SQL query results.
+                You are an expert data analyst assistant. 
+                Answer the user's question based on the SQL query results.
+                Answer in the same language as the user query.
 
                 User question: "{original_query}"
 

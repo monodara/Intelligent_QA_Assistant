@@ -149,6 +149,7 @@ class WeatherTool(BaseTool):
                 - Return ONLY a concise but detailed, natural-language weather report.
                 - DO NOT include greeting phrases.
                 - The output should start directly with the weather sentence.
+                - Answer in the same language as the user query.
 
                 location: "{location}"
                 date: "{target_date.strftime('%Y-%m-%d')}"
