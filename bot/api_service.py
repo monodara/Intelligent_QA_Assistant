@@ -15,7 +15,7 @@ _text_index = None
 _image_index = None
 
 
-def initialize_backend_components():
+async def initialize_backend_components():
     """Initialize backend components once."""
     global _kb_manager, _rag_engine, _query_router, _metadata_store, _text_index, _image_index
 
@@ -36,22 +36,23 @@ def initialize_backend_components():
             text_index=_text_index,
             image_index=_image_index
         )
+        await _query_router.init_agent()
         print("✅ QueryRouter ready.")
 
 
-def handle_chat_query(query: str) -> Dict[str, Any]:
+async def handle_chat_query(query: str) -> Dict[str, Any]:
     """Main backend API logic."""
 
     print(f"💬 Received query: {query}")
     if not _query_router:
         return {"success": False, "error": "QueryRouter not initialized."}
 
-    result = _query_router.route_query(query)
+    result = await _query_router.route_query(query)
     print(f"🧠 Returning result: {result}")
     return result
 
 
-def reload_knowledge_base() -> Dict[str, Any]:
+async def reload_knowledge_base() -> Dict[str, Any]:
     """Optional: reload knowledge base manually"""
     global _kb_manager, _rag_engine, _query_router, _metadata_store, _text_index, _image_index
 
@@ -65,4 +66,5 @@ def reload_knowledge_base() -> Dict[str, Any]:
         text_index=_text_index,
         image_index=_image_index
     )
+    await _query_router.init_agent()
     return {"success": True, "message": "Knowledge base reloaded successfully."}

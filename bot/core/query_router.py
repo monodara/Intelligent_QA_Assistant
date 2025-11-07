@@ -1,123 +1,136 @@
 """
-Query Router for the intelligent assistant using Qwen Agent
+Query Router for the intelligent assistant using LangChain Agent
 """
-import json
 import os
+import json
 from dotenv import load_dotenv
-from qwen_agent.agents import Assistant
 
-from ..core.ollama_handler import generate_local_answer
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain.agents import create_agent
 
-from ..tools.weather_tool import WeatherTool
-from ..tools.sql_tool import SQLTool
-from ..tools.knowledge_base_tool import RAGTool
+from ..tools.weather_tool import get_weather
+from ..tools.sql_tool import text_to_sql
+from ..tools.knowledge_base_tool import create_rag_tool
 from ..config import SYSTEM_ROLE
 
 load_dotenv()
 
 class QueryRouter:
     """
-    Intelligent query router using Qwen Assistant for tool selection.
+    Intelligent query router that uses a LangChain Agent to select and execute tools.
+    Supports RAG, weather, SQL, and Google Maps MCP tools.
     """
     def __init__(self, rag_engine, metadata_store, text_index, image_index):
-        # First, instantiate the tools with their dependencies
-        sql_tool_instance = SQLTool()
-        weather_tool_instance = WeatherTool()
-        rag_tool_instance = RAGTool(rag_engine, metadata_store, text_index, image_index)
-        map_tool = {
-            "mcpServers": {
-                "google-maps": {
-                "args": [
-                    "-y",
-                    "@modelcontextprotocol/server-google-maps"
-                ],
-                "command": "npx",
-                "env": {
-                    "GOOGLE_MAPS_API_KEY": os.getenv("GOOGLE_MAPS_API_KEY", "")
-                }
-                }
-            }
-            }
+        self.rag_engine = rag_engine
+        self.metadata_store = metadata_store
+        self.text_index = text_index
+        self.image_index = image_index
+        self.agent = None  # Will be initialized asynchronously
 
-        # Configure the LLM for the agent
-        self.llm_cfg = {
-            'model': 'qwen-turbo',
-            'api_key': os.getenv('DASHSCOPE_API_KEY', ''),
-            'temperature': 0.2,
-            'timeout': 30,
-            'retry_count': 3,
-        }
-        
-        # Initialize Qwen Assistant with the tool instances
-        self.assistant = Assistant(
-            llm=self.llm_cfg,
-            name='Intelligent Assistant of a Theme Park',
-            description='Intelligent assistant that can query weather, database, and knowledge base',
-            system_message=f"""{SYSTEM_ROLE}. Use tools to answer queries.
-
-            Tools:
-            - {weather_tool_instance.name}: {weather_tool_instance.description}
-            - {sql_tool_instance.name}: {sql_tool_instance.description}
-            - {rag_tool_instance.name}: {rag_tool_instance.description}
-            - google-maps: Plan routes and get location-based information using Google Maps API.
-
-            CRITICAL RULES:
-            - You MUST call a tool function for every user query.
-            - NEVER answer directly without calling a tool.
-            - Parameters MUST be provided in valid JSON format.
-            - Extract parameter values from the user's question.
-            - If unsure which tool to use, default to search_knowledge_base.
-            """,
-            function_list=[weather_tool_instance, sql_tool_instance, rag_tool_instance, map_tool],
+    async def init_agent(self):
+        """
+        Asynchronously initialize the LangChain agent with all tools including MCP tools.
+        This method must be called once before using `route_query`.
+        """
+        # Initialize RAG tool
+        rag_tool = create_rag_tool(
+            self.rag_engine, self.metadata_store, self.text_index, self.image_index
         )
 
-    def route_query(self, query: str) -> dict:
+        # Initialize MCP client for Google Maps
+        client = MultiServerMCPClient({
+            "google-maps": {
+                "transport": "stdio", 
+                "args": ["-y", "@modelcontextprotocol/server-google-maps"],
+                "command": "npx",
+                "env": {"GOOGLE_MAPS_API_KEY": os.getenv("GOOGLE_MAPS_API_KEY", "")}
+            }
+        })
+        # Await to fetch MCP tools
+        map_mcp_tools = await client.get_tools()
+
+        # Combine all tools
+        tools = [text_to_sql, get_weather, rag_tool] + map_mcp_tools
+
+        # Initialize the LLM
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            temperature=0.2,
+            google_api_key=os.getenv("GEMINI_API_KEY"),
+        )
+
+        # Create system prompt
+        prompt = f"""{SYSTEM_ROLE}. Use tools to answer queries.
+
+                    CRITICAL RULES:
+                    - You MUST call a tool function for every user query.
+                    - NEVER answer directly without calling a tool.
+                    - If unsure which tool to use, default to rag_tool.
+                    """
+        # Create the agent
+        self.agent = create_agent(model=llm, tools=tools, system_prompt=prompt)
+
+    async def route_query(self, query: str) -> dict:
         """
-        Send the query to the assistant, which will execute the appropriate tool.
+        Send a query to the agent. The agent automatically selects and executes the appropriate tool.
+        Returns the final natural-language response generated by the agent.
         """
+        if self.agent is None:
+            return {
+                "success": False,
+                "tool": "unknown",
+                "error": "Agent is not initialized. Call 'await init_agent()' first."
+            }
+
         try:
-            messages = [{'role': 'user', 'content': query}]
-            # The agent will run and call the appropriate tool's `call` method
-            for response in self.assistant.run(messages):
-                # The final response from the agent will contain the tool's output
-                if response and len(response) > 0:
-                    last_message = response[-1]
-                    # The tool's output is in the 'content' of the 'function' role message
-                    if last_message.get('role') == 'function':
-                        tool_name = last_message.get("name", "")
-                        content = last_message.get("content", "")
+            # Invoke the agent with the user query
+            response = await self.agent.ainvoke({
+                "messages": [{"role": "user", "content": query}]
+            })
 
-                        #if map_tool is used, parse the response
-                        if "maps" in tool_name.lower():
-                            parsed_answer = _parse_maps_response(content)
-                            return {
-                                "success": True,
-                                "tool": tool_name,
-                                "result": parsed_answer
-                            }
+            print("🧠 Router response:", response)
 
-                        return {
-                            "success": True,
-                            "tool": tool_name,
-                            "result": content
-                        }
+            # Try to get the final answer from the 'output' field
+            final_answer = response.get("output", "")
 
-            # Fallback if no tool was called
-            return {"success": False, "tool": "unknown", "error": "Assistant did not call a tool."}
+            # If 'output' is missing, extract the final AI message from 'messages'
+            if not final_answer and "messages" in response:
+                messages = response["messages"]
+                final_ai_messages = []
+
+                for m in messages:
+                    content = getattr(m, "content", "")
+                    if isinstance(content, str) and content.strip():
+                        final_ai_messages.append(content.strip())
+                    elif isinstance(content, list) and len(content) > 0:
+                        # If content is a list of dicts, extract the 'text' fields
+                        text_parts = [c["text"] for c in content if isinstance(c, dict) and "text" in c]
+                        if text_parts:
+                            final_ai_messages.append(" ".join(text_parts).strip())
+
+                if final_ai_messages:
+                    final_answer = final_ai_messages[-1]
+
+            if not final_answer:
+                return {
+                    "success": False,
+                    "tool": "unknown",
+                    "error": "No final AI answer was returned."
+                }
+
+            # Return the final extracted answer
+            return {
+                "success": True,
+                "tool": "auto",
+                "result": final_answer
+            }
 
         except Exception as e:
             import traceback
             print(f"❌ Router error traceback:\n{traceback.format_exc()}")
-            return {"success": False, "tool": "unknown", "error": f"Error routing query: {repr(e)}"}
-        
-def _parse_maps_response(content: any):
-    # Extract relevant information from the maps API response
-    prompt = f"""
-            You are an expert assistant for parsing Google Maps API responses. 
-            Convert the following content into a concise, user-friendly natural language description.
-            Response:
-            {content}
-            Answer:
-            """
-    answer = generate_local_answer(prompt)
-    return answer
+            return {
+                "success": False,
+                "tool": "unknown",
+                "error": f"Error routing query: {repr(e)}"
+            }
